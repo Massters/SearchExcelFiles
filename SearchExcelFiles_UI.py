@@ -8,7 +8,6 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QInputDialog
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.regexCheckbox = None
         self.initUI()
 
     def initUI(self):
@@ -72,6 +71,7 @@ class MainWindow(QMainWindow):
         dialog.exec_()
 
     def onSearch(self, dialog, keyword, folder_path, checkbox_re_checked):
+        result_cnt = 0
         dialog.close()
         
         self.tableWidget.clearContents()
@@ -86,14 +86,16 @@ class MainWindow(QMainWindow):
                         file_path = os.path.join(root, file)
                         if checkbox_re_checked:
                             try:
-                                self.searchExcelFileWithRegex(file_path, keyword)
+                                result_cnt += self.searchExcelFileWithRegex(file_path, keyword)
                             except Exception as e:
                                 QMessageBox.warning(self,"Error", str(e))
                                 return
                         else:
-                            self.searchExcelFile(file_path, keyword)
+                            result_cnt += self.searchExcelFile(file_path, keyword)
+        QMessageBox.information(self, "Result", f"检索到{result_cnt}个结果")
 
     def searchExcelFile(self, file_path, keyword):
+        result_t_cnt = 0
         workbook = openpyxl.load_workbook(file_path, read_only=True)
 
         for sheet_name in workbook.sheetnames:
@@ -104,6 +106,7 @@ class MainWindow(QMainWindow):
                 for col_idx, cell in enumerate(row, start=1):
                     cell_value = str(cell)
                     if isinstance(cell_value, str) and keyword in cell_value:
+                        result_t_cnt += 1
                         found_keyword = True
                         file_item = QTableWidgetItem(file_path)
                         sheet_item = QTableWidgetItem(sheet_name)
@@ -127,8 +130,10 @@ class MainWindow(QMainWindow):
                     additional_content_item.setText(additional_content.strip())
 
         workbook.close()
-    
+        return result_t_cnt
+
     def searchExcelFileWithRegex(self, file_path, keyword):
+        result_t_cnt = 0
         self.error_shown = False
 
         try:
@@ -144,6 +149,7 @@ class MainWindow(QMainWindow):
                     for col_idx, cell in enumerate(row, start=1):
                         cell_value = str(cell)
                         if pattern.search(cell_value):
+                            result_t_cnt += 1
                             found_keyword = True
                             file_item = QTableWidgetItem(file_path)
                             sheet_item = QTableWidgetItem(sheet_name)
@@ -167,6 +173,8 @@ class MainWindow(QMainWindow):
                         additional_content_item.setText(additional_content.strip())
 
             workbook.close()
+            return result_t_cnt
+
         except re.error as e:
             raise
 
