@@ -69,6 +69,7 @@ class MainWindow(QMainWindow):
         self.tableWidget = QTableWidget()
         self.tableWidget.setColumnCount(5)
         self.tableWidget.setHorizontalHeaderLabels(["File", "Sheet", "Cell", "Content", "Additional Content"])
+        self.tableWidget.setColumnWidth(0, 1000) #设置 File 标签的宽度
         self.tableWidget.setStyleSheet("border: 1px solid black;")
         self.tableWidget.horizontalHeader().setStretchLastSection(True)
 
@@ -86,7 +87,7 @@ class MainWindow(QMainWindow):
 
         self.threadpool = QThreadPool()
 
-        self.setGeometry(300, 300, 800, 600)
+        self.setGeometry(300, 300, 2500, 1000)
         self.setWindowTitle('Excel Search')
         self.show()
 
