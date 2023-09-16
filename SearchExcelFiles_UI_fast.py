@@ -63,8 +63,8 @@ class MainWindow(QMainWindow):
         mainWidget = QWidget()
         mainLayout = QVBoxLayout()
 
-        titleLabel = QLabel("Excel Search")
-        titleLabel.setStyleSheet("font-size: 20px; font-weight: bold; margin-bottom: 10px;")
+        # titleLabel = QLabel("Excel Search")
+        # titleLabel.setStyleSheet("font-size: 20px; font-weight: bold; margin-bottom: 10px;")
 
         self.tableWidget = QTableWidget()
         self.tableWidget.setColumnCount(5)
@@ -72,7 +72,7 @@ class MainWindow(QMainWindow):
         self.tableWidget.setStyleSheet("border: 1px solid black;")
         self.tableWidget.horizontalHeader().setStretchLastSection(True)
 
-        mainLayout.addWidget(titleLabel)
+        # mainLayout.addWidget(titleLabel)
         mainLayout.addWidget(self.tableWidget)
 
         mainWidget.setLayout(mainLayout)
