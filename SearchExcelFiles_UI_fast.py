@@ -23,35 +23,40 @@ class ExcelSearchTask(QRunnable):
         self.signals = ExcelSearchTaskSignals()
 
     def run(self):
+        global error_occurred
         try:
-            workbook = openpyxl.load_workbook(self.file_path, read_only=True)
+            if error_occurred:
+                return
+            else:
+                workbook = openpyxl.load_workbook(self.file_path, read_only=True)
 
-            for sheet_name in workbook.sheetnames:
-                sheet = workbook[sheet_name]
-                for row_idx, row in enumerate(sheet.iter_rows(values_only=True), start=1):
-                    found_keyword = False
-                    additional_content_list = []
-                    for col_idx, cell in enumerate(row, start=1):
-                        cell_value = str(cell)
-                        if self.use_regex:
-                            pattern = re.compile(self.keyword, re.IGNORECASE)
-                            if pattern.search(cell_value):
-                                found_keyword = True
-                                self.signals.foundKeyword.emit(self.file_path, sheet_name, col_idx, row_idx, cell_value)
-                        else:
-                            if self.keyword in cell_value:
-                                found_keyword = True
-                                self.signals.foundKeyword.emit(self.file_path, sheet_name, col_idx, row_idx, cell_value)
+                for sheet_name in workbook.sheetnames:
+                    sheet = workbook[sheet_name]
+                    for row_idx, row in enumerate(sheet.iter_rows(values_only=True), start=1):
+                        found_keyword = False
+                        additional_content_list = []
+                        for col_idx, cell in enumerate(row, start=1):
+                            cell_value = str(cell)
+                            if self.use_regex:
+                                pattern = re.compile(self.keyword, re.IGNORECASE)
+                                if pattern.search(cell_value):
+                                    found_keyword = True
+                                    self.signals.foundKeyword.emit(self.file_path, sheet_name, col_idx, row_idx, cell_value)
+                            else:
+                                if self.keyword in cell_value:
+                                    found_keyword = True
+                                    self.signals.foundKeyword.emit(self.file_path, sheet_name, col_idx, row_idx, cell_value)
 
-                        if col_idx != 1:
-                            additional_content_list.append(cell_value)
+                            if col_idx != 1:
+                                additional_content_list.append(cell_value)
 
-                    if found_keyword:
-                        additional_content = " ".join(additional_content_list)
-                        self.signals.foundAdditionalContent.emit(additional_content.strip())
+                        if found_keyword:
+                            additional_content = " ".join(additional_content_list)
+                            self.signals.foundAdditionalContent.emit(additional_content.strip())
 
-            workbook.close()
+                workbook.close()
         except Exception as e:
+            error_occurred = True
             self.signals.error.emit(str(e))
 
         self.signals.finished.emit()
@@ -145,9 +150,11 @@ class MainWindow(QMainWindow):
             dialog.close()
             # 清除旧结果
             self.tableWidget.setRowCount(0)
-
             self.threadpool.clear()
 
+            global error_occurred 
+            error_occurred = False
+            self.last_error = ""
             total_threads = 0
             self.completed_threads = 0
 
@@ -167,7 +174,6 @@ class MainWindow(QMainWindow):
 
             self.total_threads = total_threads
             self.progressLabel.setText(f"Searching files: 0 / {total_threads}")
-
 
     # 用于处理在Excel文件中找到的关键字事件, 它将搜索结果添加到表格中的相应单元格
     def handleKeywordFound(self, file_path, sheet_name, col_idx, row_idx, cell_value):
@@ -195,12 +201,19 @@ class MainWindow(QMainWindow):
             result_count = self.tableWidget.rowCount()
             QMessageBox.information(self, "Results", f"共找到了{self.tableWidget.rowCount()}个结果")
 
-        pass
-
     # 用于处理搜索任务发生错误的事件, 它显示一个错误的消息框
     def handleTaskError(self, error_msg):
-        QMessageBox.critical(self, "Error", error_msg)
-    
+        self.threadpool.clear()
+        self.tableWidget.setRowCount(0)
+        self.progressLabel.setText("Searching files: Error occurred!")
+        self.progressBar.setValue(0)
+
+        if self.last_error != error_msg:
+            QMessageBox.critical(self, "Error", error_msg)
+
+        self.last_error = error_msg
+
+error_occurred = False
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
