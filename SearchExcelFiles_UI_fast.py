@@ -131,22 +131,26 @@ class MainWindow(QMainWindow):
         dialog.exec_()
 
     def onSearch(self, dialog, keyword, folder_path, use_regex):
-        dialog.close()
-        # 清除旧结果
-        self.tableWidget.setRowCount(0)
 
-        self.threadpool.clear()
+        if keyword == "":
+            QMessageBox.warning(self, "ERROR", "Please Enter Keyword!")
+        else:
+            dialog.close()
+            # 清除旧结果
+            self.tableWidget.setRowCount(0)
 
-        for root, dirs, files in os.walk(folder_path):
-            for file in files:
-                if file.endswith(".xlsx") or file.endswith(".xlsm"):
-                    file_path = os.path.join(root, file)
-                    task = ExcelSearchTask(file_path, keyword, use_regex)
-                    task.signals.foundKeyword.connect(self.handleKeywordFound)
-                    task.signals.foundAdditionalContent.connect(self.handleAdditionalContentFound)
-                    task.signals.finished.connect(self.handleTaskFinished)
-                    task.signals.error.connect(self.handleTaskError)
-                    self.threadpool.start(task)
+            self.threadpool.clear()
+            
+            for root, dirs, files in os.walk(folder_path):
+                for file in files:
+                    if file.endswith(".xlsx") or file.endswith(".xlsm"):
+                        file_path = os.path.join(root, file)
+                        task = ExcelSearchTask(file_path, keyword, use_regex)
+                        task.signals.foundKeyword.connect(self.handleKeywordFound)
+                        task.signals.foundAdditionalContent.connect(self.handleAdditionalContentFound)
+                        task.signals.finished.connect(self.handleTaskFinished)
+                        task.signals.error.connect(self.handleTaskError)
+                        self.threadpool.start(task)
 
     # 用于处理在Excel文件中找到的关键字事件, 它将搜索结果添加到表格中的相应单元格
     def handleKeywordFound(self, file_path, sheet_name, col_idx, row_idx, cell_value):
