@@ -3,7 +3,7 @@ import os
 import re
 import openpyxl
 from openpyxl.utils import get_column_letter
-from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QInputDialog, QVBoxLayout, QWidget, QLabel, QTableWidget, QTableWidgetItem, QHBoxLayout, QAction, QCheckBox, QMessageBox, QDialog, QCheckBox, QPushButton, QLineEdit
+from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QInputDialog, QVBoxLayout, QWidget, QLabel, QTableWidget, QTableWidgetItem, QHBoxLayout, QAction, QCheckBox, QMessageBox, QDialog, QCheckBox, QPushButton, QLineEdit, QProgressBar
 from PyQt5.QtCore import Qt, QObject, QRunnable, QThreadPool, pyqtSignal
 
 # 定义了自定义的信号用于在Excel搜索任务中发射信号
@@ -61,6 +61,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.initUI()
+
     # 定义了程序的用户界面布局,
     def initUI(self):
         mainWidget = QWidget()
@@ -79,6 +80,12 @@ class MainWindow(QMainWindow):
 
         # mainLayout.addWidget(titleLabel)
         mainLayout.addWidget(self.tableWidget)
+
+        self.progressLabel = QLabel()
+        mainLayout.addWidget(self.progressLabel)
+
+        self.progressBar = QProgressBar()
+        mainLayout.addWidget(self.progressBar)
 
         mainWidget.setLayout(mainLayout)
         self.setCentralWidget(mainWidget)
@@ -142,7 +149,9 @@ class MainWindow(QMainWindow):
             self.threadpool.clear()
 
             total_threads = 0
-            completed_threads = 0
+            self.completed_threads = 0
+
+            self.progressBar.setValue(0)
 
             for root, dirs, files in os.walk(folder_path):
                 for file in files:
@@ -157,7 +166,8 @@ class MainWindow(QMainWindow):
                         self.threadpool.start(task)
 
             self.total_threads = total_threads
-            self.completed_threads = completed_threads
+            self.progressLabel.setText(f"Searching files: 0 / {total_threads}")
+
 
     # 用于处理在Excel文件中找到的关键字事件, 它将搜索结果添加到表格中的相应单元格
     def handleKeywordFound(self, file_path, sheet_name, col_idx, row_idx, cell_value):
@@ -178,6 +188,9 @@ class MainWindow(QMainWindow):
     def handleTaskFinished(self):
         self.completed_threads += 1
 
+        self.progressLabel.setText(f"Searching files: {self.completed_threads} / {self.total_threads}")
+        self.progressBar.setValue(int(self.completed_threads * 100 / self.total_threads))
+
         if self.completed_threads == self.total_threads:
             result_count = self.tableWidget.rowCount()
             QMessageBox.information(self, "Results", f"共找到了{self.tableWidget.rowCount()}个结果")
@@ -187,7 +200,7 @@ class MainWindow(QMainWindow):
     # 用于处理搜索任务发生错误的事件, 它显示一个错误的消息框
     def handleTaskError(self, error_msg):
         QMessageBox.critical(self, "Error", error_msg)
-
+    
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
