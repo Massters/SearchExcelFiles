@@ -140,10 +140,14 @@ class MainWindow(QMainWindow):
             self.tableWidget.setRowCount(0)
 
             self.threadpool.clear()
-            
+
+            total_threads = 0
+            completed_threads = 0
+
             for root, dirs, files in os.walk(folder_path):
                 for file in files:
                     if file.endswith(".xlsx") or file.endswith(".xlsm"):
+                        total_threads += 1
                         file_path = os.path.join(root, file)
                         task = ExcelSearchTask(file_path, keyword, use_regex)
                         task.signals.foundKeyword.connect(self.handleKeywordFound)
@@ -151,6 +155,9 @@ class MainWindow(QMainWindow):
                         task.signals.finished.connect(self.handleTaskFinished)
                         task.signals.error.connect(self.handleTaskError)
                         self.threadpool.start(task)
+
+            self.total_threads = total_threads
+            self.completed_threads = completed_threads
 
     # 用于处理在Excel文件中找到的关键字事件, 它将搜索结果添加到表格中的相应单元格
     def handleKeywordFound(self, file_path, sheet_name, col_idx, row_idx, cell_value):
@@ -169,6 +176,12 @@ class MainWindow(QMainWindow):
 
     # 用于处理搜索任务完成事件
     def handleTaskFinished(self):
+        self.completed_threads += 1
+
+        if self.completed_threads == self.total_threads:
+            result_count = self.tableWidget.rowCount()
+            QMessageBox.information(self, "Results", f"共找到了{self.tableWidget.rowCount()}个结果")
+
         pass
 
     # 用于处理搜索任务发生错误的事件, 它显示一个错误的消息框
