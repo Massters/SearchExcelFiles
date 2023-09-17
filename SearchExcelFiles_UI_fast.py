@@ -91,6 +91,7 @@ class MainWindow(QMainWindow):
         self.menuBar().addMenu('File').addAction(openFolder)
 
         self.threadpool = QThreadPool()
+        self.threadpool.setMaxThreadCount(4)
 
         self.setGeometry(300, 300, 2500, 1000)
         self.setWindowTitle('Excel Search')
@@ -103,7 +104,7 @@ class MainWindow(QMainWindow):
         dialog.setWindowTitle('Open Folder')
 
         if dialog.exec_() == QFileDialog.Accepted:
-            folder_path = dialog.selectedFiles()[0]
+            folder_path = dialog.selectedFiles()[0] #获取路径
             self.searchExcelFiles(folder_path)
 
     ################################################################################################################################################################
@@ -131,7 +132,7 @@ class MainWindow(QMainWindow):
 
     def onSearch(self, dialog, keyword, folder_path, use_regex):
         dialog.close()
-
+        # 清除旧结果
         self.tableWidget.setRowCount(0)
 
         self.threadpool.clear()
