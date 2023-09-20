@@ -143,7 +143,6 @@ class MainWindow(QMainWindow):
         dialog.exec_()
 
     def onSearch(self, dialog, keyword, folder_path, use_regex):
-
         if keyword == "":
             QMessageBox.warning(self, "ERROR", "Please Enter Keyword!")
         else:
@@ -154,7 +153,6 @@ class MainWindow(QMainWindow):
 
             global error_occurred 
             error_occurred = False
-            self.last_error = ""
             total_threads = 0
             self.completed_threads = 0
 
@@ -203,15 +201,14 @@ class MainWindow(QMainWindow):
 
     # 用于处理搜索任务发生错误的事件, 它显示一个错误的消息框
     def handleTaskError(self, error_msg):
+        global error_occurred
+        error_occurred = True
         self.threadpool.clear()
         self.tableWidget.setRowCount(0)
         self.progressLabel.setText("Searching files: Error occurred!")
         self.progressBar.setValue(0)
 
-        if self.last_error != error_msg:
-            QMessageBox.critical(self, "Error", error_msg)
-
-        self.last_error = error_msg
+        QMessageBox.critical(self, "Error", error_msg)
 
 error_occurred = False
 
