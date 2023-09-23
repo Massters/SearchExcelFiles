@@ -61,7 +61,6 @@ class ExcelSearchTask(QRunnable):
 
                 workbook.close()
         except Exception as e:
-            error_occurred = True
             self.signals.error.emit(str(e))
 
 # 表示应用程序的主窗口,它包含了用户界面的布局, 控件和与搜索任务相关的处理方法
@@ -213,14 +212,15 @@ class MainWindow(QMainWindow):
 
     # 用于处理搜索任务发生错误的事件, 它显示一个错误的消息框
     def handleTaskError(self, error_msg):
-        # global error_occurred
+        global error_occurred
         # error_occurred = True
         self.threadpool.clear()
         self.tableWidget.setRowCount(0)
         self.progressLabel.setText("Searching files: Error occurred!")
         self.progressBar.setValue(0)
-
-        QMessageBox.critical(self, "Error", error_msg)
+        if not error_occurred:
+            QMessageBox.critical(self, "Error", error_msg)
+        error_occurred = True
 
 error_occurred = False
 insert_row = 0
