@@ -10,7 +10,7 @@ from PyQt5.QtCore import Qt, QObject, QRunnable, QThreadPool, pyqtSignal
 class ExcelSearchTaskSignals(QObject):
     foundKeyword = pyqtSignal(str, str, int, int, str)
     foundAdditionalContent = pyqtSignal(str)
-    finished = pyqtSignal()
+    finished = pyqtSignal(str)
     error = pyqtSignal(str)
 
 # 表示一个Excel搜索任务.在后台线程中执行实际的Excel搜索操作,并通过信号将搜索结果传递至主窗口
@@ -54,12 +54,12 @@ class ExcelSearchTask(QRunnable):
                             additional_content = " ".join(additional_content_list)
                             self.signals.foundAdditionalContent.emit(additional_content.strip())
 
+                self.signals.finished.emit(self.file_path)
+
                 workbook.close()
         except Exception as e:
             error_occurred = True
             self.signals.error.emit(str(e))
-
-        self.signals.finished.emit()
 
 # 表示应用程序的主窗口,它包含了用户界面的布局, 控件和与搜索任务相关的处理方法
 class MainWindow(QMainWindow):
@@ -162,7 +162,8 @@ class MainWindow(QMainWindow):
                 for file in files:
                     if file.endswith(".xlsx") or file.endswith(".xlsm"):
                         total_threads += 1
-                        file_path = os.path.join(root, file)
+                        # file_path = os.path.join(root, file)
+                        file_path = root + "/" + file
                         task = ExcelSearchTask(file_path, keyword, use_regex)
                         task.signals.foundKeyword.connect(self.handleKeywordFound)
                         task.signals.foundAdditionalContent.connect(self.handleAdditionalContentFound)
@@ -189,10 +190,10 @@ class MainWindow(QMainWindow):
         self.tableWidget.setItem(row_count - 1, 4, QTableWidgetItem(additional_content))
 
     # 用于处理搜索任务完成事件
-    def handleTaskFinished(self):
+    def handleTaskFinished(self, file_path):
         self.completed_threads += 1
 
-        self.progressLabel.setText(f"Searching files: {self.completed_threads} / {self.total_threads}")
+        self.progressLabel.setText(f"Searching files: {self.completed_threads} / {self.total_threads}\t  {file_path}")
         self.progressBar.setValue(int(self.completed_threads * 100 / self.total_threads))
 
         if self.completed_threads == self.total_threads:
