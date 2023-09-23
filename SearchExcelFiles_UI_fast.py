@@ -53,7 +53,7 @@ class ExcelSearchTask(QRunnable):
                                 for cell in row:
                                     cell_value = str(cell)
                                     additional_content_list.append(cell_value)
-                                additional_content = " ".join(additional_content_list)
+                                additional_content = " ".join(additional_content_list).replace("None", " ")
                                 additional_content_list = []
                                 self.signals.foundAdditionalContent.emit(additional_content.strip())
 
