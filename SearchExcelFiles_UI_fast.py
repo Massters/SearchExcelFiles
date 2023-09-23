@@ -2,6 +2,7 @@ import sys
 import os
 import re
 import openpyxl
+from queue import Queue
 from openpyxl.utils import get_column_letter
 from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QInputDialog, QVBoxLayout, QWidget, QLabel, QTableWidget, QTableWidgetItem, QHBoxLayout, QAction, QCheckBox, QMessageBox, QDialog, QCheckBox, QPushButton, QLineEdit, QProgressBar
 from PyQt5.QtCore import Qt, QObject, QRunnable, QThreadPool, pyqtSignal
@@ -104,6 +105,7 @@ class MainWindow(QMainWindow):
 
         self.threadpool = QThreadPool()
         self.threadpool.setMaxThreadCount(4)
+        self.task_queue = Queue()
 
         self.setGeometry(300, 300, 2500, 1000)
         self.setWindowTitle('Excel Search')
@@ -162,17 +164,20 @@ class MainWindow(QMainWindow):
                 for file in files:
                     if file.endswith(".xlsx") or file.endswith(".xlsm"):
                         total_threads += 1
-                        # file_path = os.path.join(root, file)
                         file_path = root + "/" + file
                         task = ExcelSearchTask(file_path, keyword, use_regex)
                         task.signals.foundKeyword.connect(self.handleKeywordFound)
                         task.signals.foundAdditionalContent.connect(self.handleAdditionalContentFound)
                         task.signals.finished.connect(self.handleTaskFinished)
                         task.signals.error.connect(self.handleTaskError)
-                        self.threadpool.start(task)
+                        self.task_queue.put(task)
 
             self.total_threads = total_threads
             self.progressLabel.setText(f"Searching files: 0 / {total_threads}")
+
+            while not self.task_queue.empty():
+                task = self.task_queue.get()
+                self.threadpool.start(task)
 
     # 用于处理在Excel文件中找到的关键字事件, 它将搜索结果添加到表格中的相应单元格
     def handleKeywordFound(self, file_path, sheet_name, col_idx, row_idx, cell_value):
