@@ -48,12 +48,14 @@ class ExcelSearchTask(QRunnable):
                                     found_keyword = True
                                     self.signals.foundKeyword.emit(self.file_path, sheet_name, col_idx, row_idx, cell_value)
 
-                            if col_idx != 1:
-                                additional_content_list.append(cell_value)
-
-                        if found_keyword:
-                            additional_content = " ".join(additional_content_list)
-                            self.signals.foundAdditionalContent.emit(additional_content.strip())
+                            if found_keyword:
+                                found_keyword = False
+                                for cell in row:
+                                    cell_value = str(cell)
+                                    additional_content_list.append(cell_value)
+                                additional_content = " ".join(additional_content_list)
+                                additional_content_list = []
+                                self.signals.foundAdditionalContent.emit(additional_content.strip())
 
                 self.signals.finished.emit(self.file_path)
 
@@ -150,6 +152,8 @@ class MainWindow(QMainWindow):
         else:
             dialog.close()
             # 清除旧结果
+            global insert_row
+            insert_row = 0
             self.tableWidget.setRowCount(0)
             self.threadpool.clear()
 
@@ -181,18 +185,20 @@ class MainWindow(QMainWindow):
 
     # 用于处理在Excel文件中找到的关键字事件, 它将搜索结果添加到表格中的相应单元格
     def handleKeywordFound(self, file_path, sheet_name, col_idx, row_idx, cell_value):
-        row_count = self.tableWidget.rowCount()
-        self.tableWidget.insertRow(row_count)
+        global insert_row
+        self.tableWidget.insertRow(insert_row)
 
-        self.tableWidget.setItem(row_count, 0, QTableWidgetItem(file_path))
-        self.tableWidget.setItem(row_count, 1, QTableWidgetItem(sheet_name))
-        self.tableWidget.setItem(row_count, 2, QTableWidgetItem(f"{get_column_letter(col_idx)}{row_idx}"))
-        self.tableWidget.setItem(row_count, 3, QTableWidgetItem(cell_value))
+        self.tableWidget.setItem(insert_row, 0, QTableWidgetItem(file_path))
+        self.tableWidget.setItem(insert_row, 1, QTableWidgetItem(sheet_name))
+        self.tableWidget.setItem(insert_row, 2, QTableWidgetItem(f"{get_column_letter(col_idx)}{row_idx}"))
+        self.tableWidget.setItem(insert_row, 3, QTableWidgetItem(cell_value))
 
     # 用于处理在Excel文件中找到的附加内容事件, 它将附加内容添加到表格中的相应单元格
     def handleAdditionalContentFound(self, additional_content):
-        row_count = self.tableWidget.rowCount()
-        self.tableWidget.setItem(row_count - 1, 4, QTableWidgetItem(additional_content))
+        # row_count = self.tableWidget.rowCount()
+        global insert_row
+        self.tableWidget.setItem(insert_row, 4, QTableWidgetItem(additional_content))
+        insert_row += 1
 
     # 用于处理搜索任务完成事件
     def handleTaskFinished(self, file_path):
@@ -207,8 +213,8 @@ class MainWindow(QMainWindow):
 
     # 用于处理搜索任务发生错误的事件, 它显示一个错误的消息框
     def handleTaskError(self, error_msg):
-        global error_occurred
-        error_occurred = True
+        # global error_occurred
+        # error_occurred = True
         self.threadpool.clear()
         self.tableWidget.setRowCount(0)
         self.progressLabel.setText("Searching files: Error occurred!")
@@ -217,6 +223,7 @@ class MainWindow(QMainWindow):
         QMessageBox.critical(self, "Error", error_msg)
 
 error_occurred = False
+insert_row = 0
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
